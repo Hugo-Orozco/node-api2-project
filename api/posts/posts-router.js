@@ -54,8 +54,9 @@ router.post('/', async (req, res) => {
             });
         }
         else {
-            const data = await posts.insert(body);
-            res.status(201).json(data);
+            const { id } = await posts.insert(body);
+            const created = await posts.findById(id);
+            res.status(201).json(created);
         }
     }
     catch (err) {
@@ -69,9 +70,14 @@ router.post('/', async (req, res) => {
 // 4	PUT	/api/posts/:id	Updates the post with the specified id using data from the request body and returns the modified document, not the original
 
 router.put('/:id', async (req, res) => {
+    const { id } = req.params;
+    const { body } = req;
     try {
-        const { id } = req.params;
-        const { body } = req;
+        if (!body.title || !body.contents) {
+            return res.status(400).json({
+                message: 'Please provide title and contents for the post'
+            });
+        }
         const data = await posts.update(id, body);
         if (!data) {
             res.status(404).json({
@@ -79,14 +85,8 @@ router.put('/:id', async (req, res) => {
             });
         }
         else {
-            if (!body.title || !body.contents) {
-                res.status(400).json({
-                    message: 'Please provide title and contents for the post'
-                });
-            }
-            else {
-                res.status(200).json(data);
-            }
+            const updated = await posts.findById(id);
+            res.status(200).json(updated);
         }
     }
     catch (err) {
@@ -102,6 +102,7 @@ router.put('/:id', async (req, res) => {
 router.delete('/:id', async (req, res) => {
     try {
         const { id } = req.params;
+        const deleted = await posts.findById(id);
         const data = await posts.remove(id);
         if (!data) {
             res.status(404).json({
@@ -109,7 +110,7 @@ router.delete('/:id', async (req, res) => {
             });
         }
         else {
-            res.json(data);
+            res.json(deleted);
         }
     }
     catch (err) {
@@ -126,7 +127,7 @@ router.get('/:id/comments', async (req, res) => {
     try {
         const { id } = req.params;
         const data = await posts.findPostComments(id);
-        if (!data) {
+        if (data.length === 0) {
             res.status(404).json({
                 message: 'The post with the specified ID does not exist'
             });
